@@ -532,6 +532,7 @@ local get_command_handling_on_exit = function()
 
   local exit_op = "$?"
   local escape_rm = " \\rm -f "
+  local and_op = " &&"
 
   if is_fish_shell() then
     exit_op = "$status"
@@ -539,13 +540,14 @@ local get_command_handling_on_exit = function()
   end
 
   if osys.iswin32 then
-    exit_op = "%errorlevel%"
-    escape_rm = is_power_shell() and "Remove-Item " or "del /Q "
+    exit_op = is_power_shell() and "$LASTEXITCODE" or "%errorlevel%"
+    and_op = is_power_shell() and " -and" or " &&"
+    escape_rm = is_power_shell() and " Remove-Item " or " del /Q "
     exit_code_file_path = exit_code_file_path:gsub("/", "\\")
     lock_file_path = lock_file_path:gsub("/", "\\")
   end
 
-  return "echo " .. exit_op .. " > " .. exit_code_file_path .. " &&" .. escape_rm .. lock_file_path
+  return "echo " .. exit_op .. " > " .. exit_code_file_path .. and_op .. escape_rm .. lock_file_path
 end
 
 ---tries to read the number stored in get_last_exit_code_file_path() file
@@ -595,7 +597,11 @@ function _terminal.run(cmd, env_script, env, args, cwd, opts, on_exit, on_output
   -- Reposition the terminal buffer, before sending commands
   local final_win_id = _terminal.reposition(opts)
 
-  local exit_handler = (osys.iswin32 and "& " or "; ") .. get_command_handling_on_exit()
+  local chain_symb = (osys.iswin32 and "& " or "; ")
+  if is_power_shell() then
+    chain_symb = "; "
+  end
+  local exit_handler = chain_symb .. get_command_handling_on_exit()
   local final_cmd, final_env, final_args, build_dir = prepare_run(cmd, env, args, cwd)
   local full_cmd
   local call_update

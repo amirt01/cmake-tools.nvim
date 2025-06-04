@@ -17,7 +17,7 @@ The goal of this plugin is to offer a comprehensive, convenient, and powerful wo
 - Allow integerating with [overseer](https://github.com/stevearc/overseer.nvim), optional, if you want this feature, please install it firstly.
 - Allow integerating with [toggleterm](https://github.com/akinsho/toggleterm.nvim), optional, if you want this feature, please install it firstly.
 - Install it like any other Neovim plugin.
-  - [lazy.nvim](https://github.com/folke/lazy.nvim): `return { 'Civitasv/cmake-tools.nvim' }`
+  - [lazy.nvim](https://github.com/folke/lazy.nvim): `return { 'Civitasv/cmake-tools.nvim', opts = {} }`
   - [packer.nvim](https://github.com/wbthomason/packer.nvim): `use 'Civitasv/cmake-tools.nvim'`
   - [vim-plug](https://github.com/junegunn/vim-plug): `Plug 'Civitasv/cmake-tools.nvim'`
 
@@ -42,8 +42,14 @@ require("cmake-tools").setup {
     end
     return "out/${variant:buildType}"
   end, -- this is used to specify generate directory for cmake, allows macro expansion, can be a string or a function returning the string, relative to cwd.
-  cmake_soft_link_compile_commands = true, -- this will automatically make a soft link from compile commands file to project root dir
-  cmake_compile_commands_from_lsp = false, -- this will automatically set compile commands file location using lsp, to use it, please set `cmake_soft_link_compile_commands` to false
+  cmake_compile_commands_options = {
+    action = "soft_link", -- available options: soft_link, copy, lsp, none
+                          -- soft_link: this will automatically make a soft link from compile commands file to target
+                          -- copy:      this will automatically copy compile commands file to target
+                          -- lsp:       this will automatically set compile commands file location using lsp
+                          -- none:      this will make this option ignored
+    target = vim.loop.cwd() -- path to directory, this is used only if action == "soft_link" or action == "copy"
+  },
   cmake_kits_path = nil, -- this is used to specify global cmake kits path, see CMakeKits for detailed usage
   cmake_variants_message = {
     short = { show = true }, -- whether to show short message
@@ -79,7 +85,7 @@ require("cmake-tools").setup {
             strategy = {
                 "toggleterm",
                 direction = "horizontal",
-                autos_croll = true,
+                auto_scroll = true,
                 quit_on_exit = "success"
             }
         }, -- options to pass into the `overseer.new_task` command
@@ -163,6 +169,7 @@ require("cmake-tools").setup {
     refresh_rate_ms = 100, -- how often to iterate icons
   },
   cmake_virtual_text_support = true, -- Show the target related to current file using virtual text (at right corner)
+  cmake_use_scratch_buffer = false, -- A buffer that shows what cmake-tools has done
 }
 ```
 

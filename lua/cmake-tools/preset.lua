@@ -1,8 +1,14 @@
 local Path = require("plenary.path")
+local osys = require("cmake-tools.osys")
+local utils = require("cmake-tools.utils")
 
 local Preset = {}
 
 local function expandMacro(self, str)
+  if type(str) == "table" and str.value ~= nil then
+    str = str.value
+  end
+
   if type(str) ~= "string" then
     return str
   end
@@ -25,7 +31,7 @@ local function expandMacro(self, str)
   if self.generator then
     str = str:gsub("${generator}", self.generator)
   end
-  str = str:gsub("${hostSystemName}", vim.loop.os_uname().sysname)
+  str = str:gsub("${hostSystemName}", osys.iswin32 and "Windows" or vim.loop.os_uname().sysname)
   str = str:gsub("${fileDir}", source_path.filename)
   str = str:gsub("${dollar}", "$")
   str = str:gsub("${pathListSep}", "/")
@@ -38,7 +44,6 @@ local function resolveBuildDir(self)
     return
   end
   self.binaryDirExpanded = expandMacro(self, self.binaryDir)
-  self.binaryDirExpanded = vim.fn.fnamemodify(self.binaryDirExpanded, ":.")
 end
 
 local function resolveCacheVariables(self)
@@ -82,7 +87,7 @@ local function resolveConditions(self)
           if type(entry) ~= "string" then
             error("list field must be of type string")
           end
-          if cond.string == expandMacro(self, self, entry) then
+          if cond.string == expandMacro(self, entry) then
             return true
           end
         end
@@ -268,6 +273,29 @@ end
 
 function Preset:get_build_type()
   return self.cacheVariables and self.cacheVariables.CMAKE_BUILD_TYPE or "Debug"
+end
+
+function Preset:get_build_configuration_types()
+  local generator = self.generator
+  local multi_configuration_generator = { "Visual Studio", "Xcode", "Ninja Multi-Config" }
+  local support_multi_configuration = false
+  for i, val in ipairs(multi_configuration_generator) do
+    if val == generator then
+      support_multi_configuration = true
+    end
+  end
+  if not support_multi_configuration then
+    return nil
+  end
+  if self.cacheVariables == nil then
+    return nil
+  end
+  if self.cacheVariables.CMAKE_CONFIGURATION_TYPES == nil then
+    return nil
+  end
+  local configuration_types = self.cacheVariables.CMAKE_CONFIGURATION_TYPES
+
+  return utils.split_string_by_delimiter(configuration_types, ";")
 end
 
 return Preset
