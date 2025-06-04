@@ -121,10 +121,20 @@ function Presets:parse(cwd)
     return BuildPreset:new(cwd, obj)
   end
 
+  -- Initialize configurePresets if it doesn't exist
+  if not instance.configurePresets then
+    instance.configurePresets = {}
+  end
+  
   for _, preset in ipairs(instance.configurePresets) do
     preset = createPreset(preset)
   end
 
+  -- Initialize buildPresets if it doesn't exist
+  if not instance.buildPresets then
+    instance.buildPresets = {}
+  end
+  
   for _, build_preset in ipairs(instance.buildPresets) do
     build_preset = createBuildPreset(build_preset)
   end
